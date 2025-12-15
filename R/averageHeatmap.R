@@ -111,6 +111,9 @@ averageHeatmap <- function(
     )
   }
 
+  # filter gene
+  mean_gene_exp <- mean_gene_exp[rowSums(mean_gene_exp) > 0,]
+
   # add colnames
   # name1 <- gsub(
   #   pattern = paste0(assays, ".", sep = ""),
