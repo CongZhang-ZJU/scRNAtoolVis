@@ -262,7 +262,9 @@ featureCornerAxes <- function(
       ggplot2::facet_wrap(facets = "gene_name", ncol = nLayout)
   } else {
     p1 <- pmain +
-      ggplot2::facet_grid(facets = c("gene_name", groupFacet))
+      # ggplot2::facet_grid(facets = c("gene_name", groupFacet))
+      ggplot2::facet_grid(rows = ggplot2::vars(.data[["gene_name"]]),
+                          cols = ggplot2::vars(.data[[groupFacet]]))
   }
 
   ######################################
