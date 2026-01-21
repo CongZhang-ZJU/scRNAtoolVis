@@ -1,26 +1,45 @@
 #' @name markerVolcano
 #' @author Junjun Lao
-#' @title Marker genes volcano plot
+#' @title Marker 基因“火山分面图”（按 cluster 分面）
 #'
-#' @param markers Dataframe marker genes from findAllmarkers function from seurat.
-#' @param ownGene Your own gene names to be labeled on plot, defaults is null.
-#' @param topn  Numbers top genes to label, defaults is 5.
-#' @param log2FC The threshold of log2FC, defaults is 0.25.
-#' @param hlineSize Hline size, defaults is 1.
-#' @param hlineColor Hline color, defaults is "grey50".
-#' @param pforce  Positive gene force parameters to avoid overlap gene labels, defaults is 5.
-#' @param nforce Negative gene force parameters to avoid overlap gene labels, defaults is 2.5.
-#' @param nudge_x Adjustments on the horizontal of the gene label, defaults is 0.8.
-#' @param pnudge_y Adjustments on the horizontal of the positive gene label, defaults is 0.25.
-#' @param nnudge_y Adjustments on the horizontal of the negative gene label, defaults is 0.
-#' @param base_size Theme base size, defaults is 14.
-#' @param facetColor Facet border color, defaults is NA.
-#' @param facetFill Facet fill color, defaults is "white".
-#' @param ylab Plot y label, defaults is "Log2-Fold Change".
-#' @param nrow Numbers rows to plot, defaults is 1.
+#' @description
+#' 输入通常为 Seurat `FindAllMarkers()` 的结果（也可读取包内示例 csv），
+#' x 轴为 \(\Delta\%\)（pct.1 - pct.2），y 轴为 avg_log2FC，并按 cluster 分面。
+#' 默认会为每个 cluster 标注 top 上调/下调基因。
 #'
-#' @return Return a ggplot.
+#' @param markers 数据框；marker 结果。至少需要列：\code{cluster}, \code{gene}, \code{avg_log2FC}, \code{pct.1}, \code{pct.2}。
+#' @param ownGene 字符向量；若提供，则只标注这些基因（覆盖 topn 逻辑），默认 NULL。
+#' @param topn 整数；每个 cluster 标注的 top 基因数量（正/负各 topn），默认 5。
+#' @param log2FC 数值；横线阈值（±log2FC），默认 0.25。
+#' @param labelCol 颜色向量；不同 cluster 的标签颜色，默认 NULL（建议传 `ggsci::pal_npg()(9)` 等）。
+#' @param hlineSize 数值；横线粗细，默认 1。
+#' @param hlineColor 字符串；横线颜色，默认 "grey50"。
+#' @param pforce 数值；正向基因标签 repel 力度，默认 5。
+#' @param nforce 数值；负向基因标签 repel 力度，默认 2.5。
+#' @param nudge_x 数值；标签水平偏移基准，默认 0.8。
+#' @param pnudge_y 数值；正向标签 y 偏移，默认 0.25。
+#' @param nnudge_y 数值；负向标签 y 偏移，默认 0。
+#' @param base_size 主题基准字号，默认 14。
+#' @param facetColor 分面边框颜色，默认 NA。
+#' @param facetFill 分面背景填充色，默认 "white"。
+#' @param ylab y 轴标题，默认 "Log2-Fold Change"。
+#' @param nrow 分面行数，默认 1。
+#'
+#' @return 返回一个 ggplot 对象。
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' library(scRNAtoolVis)
+#' test <- system.file("extdata", "pbmc.markers.csv", package = "scRNAtoolVis")
+#' markers <- read.csv(test)
+#'
+#' markerVolcano(
+#'   markers = markers,
+#'   topn = 5,
+#'   labelCol = ggsci::pal_npg()(9)
+#' )
+#' }
 #'
 #' @examples
 #' test <- system.file("extdata", "pbmc.markers.csv", package = "scRNAtoolVis")
@@ -53,7 +72,12 @@ markerVolcano <- function(
     facetFill = "white",
     ylab = "Log2-Fold Change",
     nrow = 1) {
-  # whether supply own gene names
+  # ============================================================================
+  # 1) 选取要标注的基因
+  # ============================================================================
+  # 逐行注释：
+  # - 若 ownGene=NULL：每个 cluster 选 top 上调与 top 下调
+  # - 若 ownGene 非空：只标注指定基因
   if (is.null(ownGene)) {
     # top genes
     toppos <- markers %>%
@@ -71,7 +95,9 @@ markerVolcano <- function(
     topneg <- topgene %>% dplyr::filter(avg_log2FC < 0)
   }
 
-  # plot
+  # ============================================================================
+  # 2) 绘图（x = pct.1 - pct.2；y = avg_log2FC；按 cluster 分面）
+  # ============================================================================
   ggplot2::ggplot(
     markers,
     ggplot2::aes(x = pct.1 - pct.2, y = avg_log2FC)

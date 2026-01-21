@@ -1,8 +1,12 @@
 #' @name tracksPlot
 #' @author Jun Zhang
-#' @title This function generates a track or heatmap plot based on the provided data.
+#' @title tracksPlot：轨迹柱/热图（Seurat v5 兼容）
 #'
-#' @param object An optional object containing the data.
+#' @param object 一个 Seurat 对象，包含表达矩阵与细胞分群信息。
+#' @param assay 使用哪个 assay（例如 "RNA"、"SCT"）。默认使用 `Seurat::DefaultAssay(object)`。
+#' @param slot 需要使用的表达层。为了兼容 Seurat v4/v5：
+#' - 在 Seurat v4 中等价于 `slot`（如 "data" / "counts" / "scale.data"）
+#' - 在 Seurat v5 中等价于 `layer`（如 "data" / "counts" / "scale.data"）
 #' @param plot.type The type of plot to generate, either "track" or "heatmap".
 #' @param genes A vector or data frame specifying the genes to plot.
 #' @param vmin The minimum value for the color scale (only applicable for the heatmap plot).
@@ -13,7 +17,7 @@
 #' @param theme_params A list of additional parameters to customize the plot's theme.
 #' @param strip_nested_params A list of additional parameters to customize the strip_nested plot.
 #'
-#' @return A ggplot object representing the track or heatmap plot.
+#' @return 返回一个 ggplot 对象（track 或 heatmap）。
 #'
 #' @export
 
@@ -21,6 +25,8 @@ globalVariables(c("barcode", "distinct"))
 
 tracksPlot <- function(
     object = NULL,
+    assay = NULL,
+    slot = "data",
     plot.type = c("track", "heatmap"),
     genes = NULL,
     vmin = -2, vmax = 2,
@@ -46,8 +52,32 @@ tracksPlot <- function(
   barcode_info$barcode <- rownames(barcode_info)
   colnames(barcode_info)[1] <- "cell"
 
-  # get normalized matrix
-  df <- data.frame(t(as.matrix(object@assays$RNA@data)), check.names = FALSE)[, markers]
+  # ============================================================================
+  # 读取表达矩阵（Seurat v4/v5 兼容）
+  # ============================================================================
+  # 逐行注释：
+  # - `.scRNAtoolVis_get_assay_data()` 内部会自动判断 Seurat 是否支持 layer 参数
+  # - Seurat v4：走 GetAssayData(..., slot = slot)
+  # - Seurat v5：走 GetAssayData(..., layer = slot)（这里把 slot 映射为 layer）
+  exp_mat <- .scRNAtoolVis_get_assay_data(
+    object = object,
+    assay = assay,
+    slot = slot
+  )
+
+  # 逐行注释：
+  # - GetAssayData 返回的是 “基因 x 细胞” 的矩阵
+  # - tracksPlot 需要 “细胞 x 基因”，因此需要转置
+  df <- data.frame(t(.scRNAtoolVis_as_matrix(exp_mat)), check.names = FALSE)
+
+  # 逐行注释：
+  # - 用户传入的 markers 可能包含对象中不存在的基因
+  # - 为了避免直接报错，这里做一次交集过滤，并在完全匹配不到时给出明确错误
+  markers_use <- intersect(markers, colnames(df))
+  if (length(markers_use) == 0) {
+    stop("在所选 assay/layer(slot) 中找不到任何待绘制基因，请检查 `genes` 或 `assay/slot` 参数。")
+  }
+  df <- df[, markers_use, drop = FALSE]
 
   # do zscore
   if (plot.type == "heatmap") {

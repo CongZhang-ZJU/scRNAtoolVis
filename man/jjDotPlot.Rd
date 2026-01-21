@@ -2,13 +2,17 @@
 % Please edit documentation in R/jjDotPlot.R
 \name{jjDotPlot}
 \alias{jjDotPlot}
-\title{using dotplot to visualize gene expression}
+\title{DotPlot 版基因表达可视化（Seurat v4/v5 兼容）}
 \arguments{
-\item{object}{seurat object, default NULL.}
+\item{object}{Seurat 对象，默认 NULL。}
 
-\item{assay}{the assay to be selected, default NULL.}
+\item{assay}{字符串；使用哪个 assay，默认 NULL（使用 DefaultAssay）。}
 
-\item{slot}{gene expression data to be selected, default "data".}
+\item{slot}{字符串；表达矩阵层，默认 "data"。
+\itemize{
+\item Seurat v4：等价于 \code{FetchData(..., slot = slot)}
+\item Seurat v5：等价于 \code{FetchData(..., layer = slot)}（本函数内部已自动兼容）
+}}
 
 \item{id}{the cell clusters id in the metadata info, default "seurat_clusters".}
 
@@ -100,7 +104,7 @@
 Return a ggplot object.
 }
 \description{
-using dotplot to visualize gene expression
+用 DotPlot 的方式展示基因在不同分组/细胞类型中的平均表达与表达比例（Seurat v4/v5 兼容）。
 }
 \examples{
 \dontrun{
@@ -118,31 +122,36 @@ markergene <- data("top3pbmc.markers")
 # ====================================
 jjDotPlot(
   object = pbmc,
-  gene = top3pbmc.markers$gene
+  gene = top3pbmc.markers$gene,
+  slot = "data"
 )
 
 jjDotPlot(
   object = pbmc,
   gene = top3pbmc.markers$gene,
-  id = "celltype"
-)
-
-jjDotPlot(
-  object = pbmc,
-  markerGene = top3pbmc.markers
+  id = "celltype",
+  slot = "data"
 )
 
 jjDotPlot(
   object = pbmc,
   markerGene = top3pbmc.markers,
-  xtree = TRUE
+  slot = "data"
+)
+
+jjDotPlot(
+  object = pbmc,
+  markerGene = top3pbmc.markers,
+  xtree = TRUE,
+  slot = "data"
 )
 
 jjDotPlot(
   object = pbmc,
   markerGene = top3pbmc.markers,
   anno = TRUE,
-  plot.margin = c(3, 1, 1, 1)
+  plot.margin = c(3, 1, 1, 1),
+  slot = "data"
 )
 }
 }

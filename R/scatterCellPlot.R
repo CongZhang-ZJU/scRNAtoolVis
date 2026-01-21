@@ -1,23 +1,33 @@
 #' @name scatterCellPlot
 #' @author Jun Zhang
-#' @title This function creates a scatter cell plot using the grid package in R.
+#' @title 使用 grid 绘制“降维散点 + 细胞数量条形图 + 图例”的组合图
 #'
-#' @param object A Seurat object containing the data.
-#' @param color A vector of colors for each cell type. If NULL, random colors will be assigned.
-#' @param dim The dimension used for plotting (default is "umap").
-#' @param rm.axis Logical value indicating whether to remove the x and y-axis (default is FALSE).
-#' @param cell.id Name of the column in the metadata that represents cell identity (default is NULL).
-#' @param bar.width Width of the barplot (default is 0.2).
-#' @param point.size Size of the points in the scatter plot (default is 1).
-#' @param rm.barplot whether remove barplot, default FALSE.
-#' @param legend.psize legend point size, default 1.5.
-#' @param arrow.len arrow length, default 0.2.
+#' @description
+#' 该函数不依赖 ggplot2 的 facet/legend 系统，而是用 `grid` 手动布局：
+#' - 左侧：降维散点（UMAP/tSNE 等）
+#' - 中间：每个细胞类型的细胞数量条形图（可选）
+#' - 右侧：颜色图例（点+文本）
 #'
-#' @return None
+#' @param object Seurat 对象，必须包含指定的降维结果（例如 "umap"）。
+#' @param color 颜色向量；每个 celltype 一种颜色。默认 NULL 表示随机生成。
+#' @param dim 字符串；降维名称（Seurat reductions），默认 "umap"。
+#' @param rm.axis 是否移除坐标轴（TRUE 时会用箭头标注轴方向），默认 FALSE。
+#' @param cell.id 字符串；可选，meta.data 中的列名。若提供，则图例左侧会额外显示该列值。
+#' @param bar.width 数值；条形图区域宽度，默认 0.2。
+#' @param point.size 数值；散点大小（grid 点大小，单位 pt），默认 1。
+#' @param rm.barplot 是否移除中间条形图，默认 FALSE。
+#' @param legend.psize 数值；图例点大小（单位 char），默认 1.5。
+#' @param arrow.len 数值；当 `rm.axis=TRUE` 时箭头长度，默认 0.2。
+#'
+#' @return 本函数直接在当前图形设备上绘制，不返回对象（返回值为 NULL/不可用）。
 #'
 #' @examples
 #' \dontrun{
-#' scatterCellPlot(object = seurat_object)
+#' library(Seurat)
+#' library(scRNAtoolVis)
+#'
+#' obj <- readRDS(system.file("extdata", "seuratTest.RDS", package = "scRNAtoolVis"))
+#' scatterCellPlot(object = obj, dim = "umap")
 #' }
 #'
 #' @importFrom grid grid.newpage pushViewport popViewport viewport grid.rect grid.xaxis grid.yaxis grid.points grid.segments grid.text arrow gpar
@@ -38,8 +48,21 @@ scatterCellPlot <- function(
     legend.psize = 1.5,
     arrow.len = 0.2) {
   # ============================================================================
-  # 1_extract data
+  # 1) 提取数据
   # ============================================================================
+  # 逐行注释：检查 Seurat 对象是否包含指定的降维结果
+  available_reductions <- Seurat::Reductions(object)
+  if (length(available_reductions) == 0) {
+    stop(
+      "当前 Seurat 对象中没有任何降维结果（reductions）。\n",
+      "请先运行例如 `RunUMAP()`/`RunTSNE()`，或把 `dim` 改为对象中已有的 reduction。"
+    )
+  }
+  if (!dim %in% available_reductions) {
+    stop(sprintf("未在对象中找到 reduction='%s'。可用 reductions: %s",
+                 dim, paste(available_reductions, collapse = ", ")))
+  }
+
   # make PC data
   reduc <- data.frame(Seurat::Embeddings(object, reduction = dim))
 
@@ -66,6 +89,7 @@ scatterCellPlot <- function(
   # ============================================================================
   # 2_draw plot
   # ============================================================================
+  # 逐行注释：根据是否移除坐标轴，调整轴标签/箭头的留白位置
   if (rm.axis == FALSE) {
     lab.shift <- unit(-2.5, "lines")
   } else {

@@ -2,29 +2,47 @@
 % Please edit documentation in R/drawLegend.R
 \name{drawLegend}
 \alias{drawLegend}
-\title{using drawLegend to add cluster id in legend}
+\title{在图旁边补一个“细胞类型-簇编号”对照图例}
 \arguments{
-\item{object}{object seurat object, default NULL.}
+\item{object}{Seurat 对象（用于提供 meta.data）。}
 
-\item{plot}{ggplot object, default NULL.}
+\item{plot}{ggplot 对象（主图）。}
 
-\item{cellType}{cell type column name, default NULL.}
+\item{cellType}{字符串；meta.data 中“细胞类型”的列名。}
 
-\item{clusters}{cluster id column name, default NULL.}
+\item{clusters}{字符串；meta.data 中“簇编号/cluster”的列名。}
 
-\item{ncol}{ncols to draw legend(1/2), default 1.}
+\item{ncol}{整数；图例分成几列（常用 1 或 2），默认 1。}
 
-\item{col}{point color, default hue_pal().}
+\item{col}{颜色向量；为每个 cellType 指定颜色。默认 NULL 表示使用 \code{scales::hue_pal()} 自动生成。}
 
-\item{pt.size}{point size, default 8.}
+\item{pt.size}{数值；图例点大小，默认 8。}
 
-\item{text.size}{text size, default 4.}
+\item{text.size}{数值；图例文字大小，默认 4。}
 }
 \value{
-combine plot
+返回 \code{cowplot::plot_grid()} 拼接后的图。
 }
 \description{
-using drawLegend to add cluster id in legend
+从 \code{object@meta.data} 中提取“细胞类型列”和“簇编号列”，生成一个小图例，并与主图拼接。
+}
+\examples{
+\dontrun{
+library(Seurat)
+library(scRNAtoolVis)
+
+obj <- readRDS(system.file("extdata", "seuratTest.RDS", package = "scRNAtoolVis"))
+obj$celltype <- as.character(Seurat::Idents(obj))
+
+p <- Seurat::DimPlot(obj, reduction = "umap", group.by = "celltype") + ggplot2::NoLegend()
+drawLegend(
+  object = obj,
+  plot = p,
+  cellType = "celltype",
+  clusters = "seurat_clusters",
+  ncol = 1
+)
+}
 }
 \author{
 Junjun Lao

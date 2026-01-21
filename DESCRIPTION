@@ -36,7 +36,7 @@ Imports:
     purrr,
     reshape2,
     scales,
-    Seurat,
+    Seurat (>= 4.0.0),
     stats,
     utils
 Depends: 

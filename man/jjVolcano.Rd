@@ -2,57 +2,59 @@
 % Please edit documentation in R/jjVolcano.R
 \name{jjVolcano}
 \alias{jjVolcano}
-\title{using jjVolcano to visualize marker genes}
+\title{按 cluster 展示 marker 的“火山棒棒糖图”（正负 avg\_log2FC）}
 \arguments{
-\item{diffData}{diff results with data.frame format, default NULL.}
+\item{diffData}{数据框；差异分析结果。至少需要包含列：\code{cluster}, \code{gene}, \code{avg_log2FC}, \code{p_val}, \code{p_val_adj}。}
 
-\item{myMarkers}{whether supply your own gene labels, default NULL.}
+\item{myMarkers}{字符向量；若提供，则只标注这些基因（覆盖 topGeneN 逻辑），默认 NULL。}
 
-\item{log2FC.cutoff}{log2FoldChange cutoff, default 0.25.}
+\item{order.by}{字符串；用于挑选 top 基因的排序列名，默认 "avg_log2FC"。}
 
-\item{pvalue.cutoff}{pvalue cutoff to filter, default 0.05.}
+\item{log2FC.cutoff}{数值；|avg_log2FC| 过滤阈值，默认 0.25。}
 
-\item{adjustP.cutoff}{adjusted pvalue cutoff to be colored in plot, default 0.01.}
+\item{pvalue.cutoff}{数值；p_val 过滤阈值，默认 0.05。}
 
-\item{topGeneN}{top genes to be labeled in plot, default 5.}
+\item{adjustP.cutoff}{数值；用于 “adjustP” 配色类型的阈值，默认 0.01。}
 
-\item{col.type}{point color type("updown/adjustP"), default "updown".}
+\item{topGeneN}{整数；每个 cluster 标注的 top 基因数量（正/负各 topGeneN），默认 5。}
 
-\item{back.col}{background color, default "grey93".}
+\item{col.type}{字符串；点的着色策略："updown" 或 "adjustP"，默认 "updown"。}
 
-\item{pSize}{point size, default 0.75.}
+\item{back.col}{字符串；背景条颜色，默认 "grey93"。}
 
-\item{aesCol}{point mapping color, default c("#0099CC","#CC3333").}
+\item{pSize}{数值；点大小，默认 0.75。}
 
-\item{legend.position}{legend position in plot, default c(0.7,0.9).}
+\item{aesCol}{颜色向量；两种颜色（下调/上调），默认 c("#0099CC","#CC3333")。}
 
-\item{base_size}{theme base size, default 14.}
+\item{legend.position}{图例位置，默认 c(0.7,0.9)。}
 
-\item{tile.col}{cluster tile fill color, default jjAnno::useMyCol("paired",n = 9).}
+\item{base_size}{主题基准字号，默认 14。}
 
-\item{...}{other arguments passed by "geom_text_repel".}
+\item{tile.col}{颜色向量；cluster 底部 tile 的配色，默认 \code{jjAnno::useMyCol("paired", n = 9)}。}
 
-\item{cluster.order}{whether given your cluster orders, default NULL.}
+\item{cluster.order}{字符向量；指定 cluster 显示顺序，默认 NULL。}
 
-\item{polar}{whether make the plot to br polar, default FALSE.}
+\item{polar}{逻辑值；是否转成极坐标展示，默认 FALSE。}
 
-\item{expand}{the y axis expand, default c(-1,1).}
+\item{expand}{数值向量；极坐标时 y 方向扩展倍数，默认 c(-1, 1)。}
 
-\item{flip}{whether flip the plot, default FALSE.}
+\item{flip}{逻辑值；是否翻转坐标，默认 FALSE。}
 
-\item{celltypeSize}{the fontsize of celltype, default 3.}
+\item{celltypeSize}{数值；cluster 名称文字大小，默认 3。}
 
-\item{order.by}{top marker gene selection method, how the order is, default c("avg_log2FC").}
+\item{...}{其他参数会传给 \code{ggrepel::geom_text_repel()}（用于微调标注）。}
 }
 \value{
-a ggplot object.
+返回一个 ggplot 对象。
 }
 \description{
-using jjVolcano to visualize marker genes
+按 cluster 分组展示 avg\_log2FC，并自动标注每个 cluster 的 top 上调/下调基因。
 }
 \examples{
 \dontrun{
-jjVolcano(diffData = pbmc.markers)
+library(scRNAtoolVis)
+data("pbmc.markers")
+jjVolcano(diffData = pbmc.markers, topGeneN = 5)
 }
 }
 \author{

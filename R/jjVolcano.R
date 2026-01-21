@@ -1,35 +1,41 @@
 #' @name jjVolcano
 #' @author Junjun Lao
-#' @title using jjVolcano to visualize marker genes
+#' @title 按 cluster 展示 marker 的“火山棒棒糖图”（正负 avg_log2FC）
 #'
-#' @param diffData diff results with data.frame format, default NULL.
-#' @param myMarkers whether supply your own gene labels, default NULL.
-#' @param log2FC.cutoff log2FoldChange cutoff, default 0.25.
-#' @param pvalue.cutoff pvalue cutoff to filter, default 0.05.
-#' @param adjustP.cutoff adjusted pvalue cutoff to be colored in plot, default 0.01.
-#' @param topGeneN top genes to be labeled in plot, default 5.
-#' @param col.type point color type("updown/adjustP"), default "updown".
-#' @param back.col background color, default "grey93".
-#' @param pSize point size, default 0.75.
-#' @param aesCol point mapping color, default c("#0099CC","#CC3333").
-#' @param legend.position legend position in plot, default c(0.7,0.9).
-#' @param base_size theme base size, default 14.
-#' @param tile.col cluster tile fill color, default jjAnno::useMyCol("paired",n = 9).
-#' @param ... other arguments passed by "geom_text_repel".
-#' @param cluster.order whether given your cluster orders, default NULL.
-#' @param polar whether make the plot to br polar, default FALSE.
-#' @param expand the y axis expand, default c(-1,1).
-#' @param flip whether flip the plot, default FALSE.
-#' @param celltypeSize the fontsize of celltype, default 3.
+#' @description
+#' 输入通常来自 Seurat 的差异分析结果（例如 `FindAllMarkers()` 输出），
+#' 本函数会按 cluster 分组，在 y 轴展示 `avg_log2FC`，并自动标注每个 cluster 的 top 上调/下调基因。
 #'
-#' @param order.by top marker gene selection method, how the order is, default c("avg_log2FC").
+#' @param diffData 数据框；差异分析结果。至少需要包含列：
+#' \code{cluster}, \code{gene}, \code{avg_log2FC}, \code{p_val}, \code{p_val_adj}。
+#' @param myMarkers 字符向量；若提供，则只标注这些基因（覆盖 topGeneN 逻辑），默认 NULL。
+#' @param order.by 字符串；用于挑选 top 基因的排序列名，默认 "avg_log2FC"。
+#' @param log2FC.cutoff 数值；|avg_log2FC| 过滤阈值，默认 0.25。
+#' @param pvalue.cutoff 数值；p_val 过滤阈值，默认 0.05。
+#' @param adjustP.cutoff 数值；用于“adjustP”配色类型的阈值，默认 0.01。
+#' @param topGeneN 整数；每个 cluster 标注的 top 基因数量（正/负各 topGeneN），默认 5。
+#' @param col.type 字符串；点的着色策略："updown" 或 "adjustP"，默认 "updown"。
+#' @param back.col 字符串；背景条颜色，默认 "grey93"。
+#' @param pSize 数值；点大小，默认 0.75。
+#' @param aesCol 颜色向量；两种颜色（下调/上调），默认 c("#0099CC","#CC3333")。
+#' @param legend.position 图例位置，默认 c(0.7,0.9)。
+#' @param base_size 主题基准字号，默认 14。
+#' @param tile.col 颜色向量；cluster 底部 tile 的配色，默认 `jjAnno::useMyCol("paired", n=9)`。
+#' @param cluster.order 字符向量；指定 cluster 显示顺序，默认 NULL。
+#' @param polar 逻辑值；是否转成极坐标展示，默认 FALSE。
+#' @param expand 数值向量；极坐标时 y 方向扩展倍数，默认 c(-1,1)。
+#' @param flip 逻辑值；是否翻转坐标，默认 FALSE。
+#' @param celltypeSize 数值；cluster 名称文字大小，默认 3。
+#' @param ... 其他参数会传给 `ggrepel::geom_text_repel()`（用于微调标注）。
 #'
-#' @return a ggplot object.
+#' @return 返回一个 ggplot 对象。
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' jjVolcano(diffData = pbmc.markers)
+#' library(scRNAtoolVis)
+#' data("pbmc.markers")
+#' jjVolcano(diffData = pbmc.markers, topGeneN = 5)
 #' }
 globalVariables(c("p_val", "p_val_adj", "type", "type2"))
 jjVolcano <- function(
@@ -53,11 +59,19 @@ jjVolcano <- function(
     flip = FALSE,
     celltypeSize = 3,
     ...) {
-  # filter data
+  # ============================================================================
+  # 1) 数据过滤
+  # ============================================================================
+  # 逐行注释：按 log2FC 与 p 值过滤，减少噪音点
   diff.marker <- diffData %>%
     dplyr::filter(abs(avg_log2FC) >= log2FC.cutoff & p_val < pvalue.cutoff)
 
-  # assign type
+  # ============================================================================
+  # 2) 赋予类别标签（用于上色）
+  # ============================================================================
+  # 逐行注释：
+  # - type：上调/下调（sigUp/sigDown）
+  # - type2：adjusted p value 是否显著（用于另一种配色策略）
   diff.marker <- diff.marker %>%
     dplyr::mutate(type = ifelse(avg_log2FC >= log2FC.cutoff, "sigUp", "sigDown")) %>%
     dplyr::mutate(type2 = ifelse(p_val_adj < adjustP.cutoff,
@@ -65,14 +79,18 @@ jjVolcano <- function(
       paste("adjust Pvalue >= ", adjustP.cutoff, sep = "")
     ))
 
-  # cluster orders
+  # ============================================================================
+  # 3) cluster 顺序（可选）
+  # ============================================================================
   if (!is.null(cluster.order)) {
     diff.marker$cluster <- factor(diff.marker$cluster,
       levels = cluster.order
     )
   }
 
-  # get background cols
+  # ============================================================================
+  # 4) 背景条数据：每个 cluster 的 min/max（用于画浅色背景）
+  # ============================================================================
   purrr::map_df(unique(diff.marker$cluster), function(x) {
     tmp <- diff.marker %>%
       dplyr::filter(cluster == x)
@@ -85,7 +103,9 @@ jjVolcano <- function(
     return(new.tmp)
   }) -> back.data
 
-  # get top gene
+  # ============================================================================
+  # 5) 选取每个 cluster 的 top 基因（正/负各 topGeneN）
+  # ============================================================================
   top.marker.tmp <- diff.marker %>%
     dplyr::group_by(cluster)
 
@@ -117,7 +137,9 @@ jjVolcano <- function(
   # combine
   top.marker <- rbind(top.marker.max, top.marker.min)
 
-  # whether supply own genes
+  # ============================================================================
+  # 6) 是否使用用户自定义要标注的基因
+  # ============================================================================
   if (!is.null(myMarkers)) {
     top.marker <- diff.marker %>%
       dplyr::filter(gene %in% myMarkers)

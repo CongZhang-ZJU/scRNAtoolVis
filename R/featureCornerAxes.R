@@ -1,11 +1,18 @@
 #' @name featureCornerAxes
 #' @author Junjun Lao
-#' @title Add corner axes on seurat UMAP/tSNE gene FeaturePlot function figures
+#' @title 给 FeaturePlot 加“角标坐标轴”（Corner Axes）
 #'
-#' @param object object seurat object.
-#' @param reduction "string", reduction type (umap/tsne).
-#' @param features "string", the gene you want to plot.
-#' @param groupFacet "string", give the column name in seurat metadata to facet plot, if it is "NULL", facet plot only by gene.
+#' @description
+#' 基于 Seurat 的降维坐标（UMAP/tSNE）与基因表达，绘制类似 FeaturePlot 的散点图，
+#' 并在左下角添加“角标坐标轴”，便于在去掉坐标轴时仍能表达坐标方向。
+#'
+#' @param object Seurat 对象。
+#' @param reduction 字符串；降维名称（umap/tsne），默认 "umap"。
+#' @param features 字符向量；要绘制的基因列表。
+#' @param slot 读取表达矩阵的层（兼容 Seurat v4/v5），默认 "data"。
+#' - Seurat v4：等价于 `FetchData(..., slot = slot)`
+#' - Seurat v5：等价于 `FetchData(..., layer = slot)`
+#' @param groupFacet 字符串；用于分面的 meta.data 列名。若为 NULL，则只按基因分面。
 #' @param relLength "num", the corner axis line relative length to plot axis(0-1).
 #' @param relDist "num", the relative distance of corner axis label to axis.
 #' @param aspect.ratio "num", plot width and height ratio, default NULL.
@@ -35,10 +42,13 @@
 #'
 #' # umap
 #' featureCornerAxes(
-#'   object = tmp, reduction = "umap",
+#'   object = tmp,
+#'   reduction = "umap",
 #'   groupFacet = "orig.ident",
-#'   relLength = 0.5, relDist = 0.2,
-#'   features = c("Actb", "Ythdc1", "Ythdf2")
+#'   relLength = 0.5,
+#'   relDist = 0.2,
+#'   features = c("Actb", "Ythdc1", "Ythdf2"),
+#'   slot = "data"
 #' )
 #'
 #' # one axes
@@ -68,6 +78,7 @@ featureCornerAxes <- function(
     object = NULL,
     reduction = "umap",
     features = NULL,
+    slot = "data",
     groupFacet = "orig.ident",
     minExp = NULL,
     maxExp = NULL,
@@ -88,6 +99,22 @@ featureCornerAxes <- function(
     cornerTextSize = 3,
     base_size = 14,
     themebg = "default") {
+  # 逐行注释：
+  # - 与 featurePlot 同理：先检查 reduction 是否存在，给出中文错误信息
+  available_reductions <- Seurat::Reductions(object)
+  if (length(available_reductions) == 0) {
+    stop(
+      "当前 Seurat 对象中没有任何降维结果（reductions）。\n",
+      "请先运行例如 `RunPCA()` / `RunUMAP()` / `RunTSNE()`，或把 `reduction` 改为对象中已有的 reduction。"
+    )
+  }
+  if (!reduction %in% available_reductions) {
+    stop(
+      sprintf("未在对象中找到 reduction='%s'。可用 reductions: %s",
+              reduction, paste(available_reductions, collapse = ", "))
+    )
+  }
+
   # make PC data
   reduc <- data.frame(Seurat::Embeddings(object, reduction = reduction))
 
@@ -98,7 +125,13 @@ featureCornerAxes <- function(
   pc12 <- cbind(reduc, meta)
 
   # get gene expression
-  geneExp <- Seurat::FetchData(object = object, vars = features)
+  # 逐行注释：
+  # - 同 featurePlot：统一使用兼容封装，确保 Seurat v5 不触发 slot defunct
+  geneExp <- .scRNAtoolVis_fetch_data(
+    object = object,
+    vars = features,
+    slot = slot
+  )
 
   # cbind
   mer <- cbind(pc12, geneExp)

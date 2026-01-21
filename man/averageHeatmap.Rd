@@ -2,7 +2,7 @@
 % Please edit documentation in R/averageHeatmap.R
 \name{averageHeatmap}
 \alias{averageHeatmap}
-\title{Plot averaged gene expression cross cluster cells}
+\title{平均表达热图（按分组聚合）}
 \usage{
 averageHeatmap(
   object = NULL,
@@ -35,15 +35,15 @@ averageHeatmap(
 )
 }
 \arguments{
-\item{object}{object seurat object.}
+\item{object}{Seurat 对象。}
 
-\item{markerGene}{Your marker genes.}
+\item{markerGene}{字符向量；要展示的基因列表（marker genes）。}
 
-\item{group.by}{Categories for grouping (e.g, ident, replicate, celltype). "ident" by default.}
+\item{group.by}{字符串；分组依据（例如 "ident"/"seurat_clusters"/"celltype"），默认 "ident"。}
 
-\item{assays}{Which assays to use. Default is "RNA" assays.}
+\item{assays}{字符串；使用哪个 assay，默认 "RNA"。}
 
-\item{slot}{Slot(s) to use. Default is "data".}
+\item{slot}{字符串；表达矩阵层（兼容 v4/v5）。常用 "data"/"counts"/"scale.data"，默认 "data"。}
 
 \item{htCol}{Heatmap colors. Default is c("#0099CC", "white", "#CC0033").}
 
@@ -93,7 +93,7 @@ averageHeatmap(
 Return a plot.
 }
 \description{
-Plot averaged gene expression cross cluster cells
+计算指定基因在不同分组中的平均表达量，并绘制 Z-score 热图（兼容 Seurat v4/v5）。
 }
 \examples{
 httest <- system.file("extdata", "htdata.RDS", package = "scRNAtoolVis")

@@ -2,15 +2,21 @@
 % Please edit documentation in R/featureCornerAxes.R
 \name{featureCornerAxes}
 \alias{featureCornerAxes}
-\title{Add corner axes on seurat UMAP/tSNE gene FeaturePlot function figures}
+\title{给 FeaturePlot 加“角标坐标轴”（Corner Axes）}
 \arguments{
-\item{object}{object seurat object.}
+\item{object}{Seurat 对象。}
 
-\item{reduction}{"string", reduction type (umap/tsne).}
+\item{reduction}{字符串；降维名称（umap/tsne），默认 "umap"。}
 
-\item{features}{"string", the gene you want to plot.}
+\item{features}{字符向量；要绘制的基因列表。}
 
-\item{groupFacet}{"string", give the column name in seurat metadata to facet plot, if it is "NULL", facet plot only by gene.}
+\item{slot}{读取表达矩阵的层（兼容 Seurat v4/v5），默认 "data"。
+\itemize{
+\item Seurat v4：等价于 \code{FetchData(..., slot = slot)}
+\item Seurat v5：等价于 \code{FetchData(..., layer = slot)}
+}}
+
+\item{groupFacet}{字符串；用于分面的 meta.data 列名。若为 NULL，则只按基因分面。}
 
 \item{relLength}{"num", the corner axis line relative length to plot axis(0-1).}
 
@@ -54,7 +60,7 @@
 Return a ggplot.
 }
 \description{
-Add corner axes on seurat UMAP/tSNE gene FeaturePlot function figures
+基于 Seurat 的降维坐标与基因表达绘制散点图，并在左下角添加“角标坐标轴”（Corner Axes）。
 }
 \examples{
 
@@ -67,7 +73,8 @@ featureCornerAxes(
   object = tmp, reduction = "umap",
   groupFacet = "orig.ident",
   relLength = 0.5, relDist = 0.2,
-  features = c("Actb", "Ythdc1", "Ythdf2")
+  features = c("Actb", "Ythdc1", "Ythdf2"),
+  slot = "data"
 )
 
 # one axes
@@ -77,7 +84,8 @@ featureCornerAxes(
   features = c("Actb", "Ythdc1", "Ythdf2"),
   relLength = 0.5, relDist = 0.2,
   axes = "one",
-  lineTextcol = "grey50"
+  lineTextcol = "grey50",
+  slot = "data"
 )
 
 # tsne
@@ -85,7 +93,8 @@ featureCornerAxes(
   object = tmp, reduction = "tsne",
   groupFacet = "orig.ident",
   relLength = 0.5, relDist = 0.2,
-  features = c("Actb", "Ythdc1", "Ythdf2")
+  features = c("Actb", "Ythdc1", "Ythdf2"),
+  slot = "data"
 )
 
 

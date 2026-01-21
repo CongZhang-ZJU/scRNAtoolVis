@@ -18,6 +18,48 @@ devtools::install_github("sajuukLyu/ggunchull", type = "source")
 library(scRNAtoolVis)
 ```
 
+## Seurat v5 兼容说明（重要）
+
+从 Seurat v5 开始，表达矩阵从传统的 `slot`（v4）逐步迁移到 `layer`（v5，Assay5）。  
+本仓库已做兼容处理：**包内所有需要读取表达矩阵的位置，都会自动适配 Seurat v4/v5**。
+
+- **你仍然可以像以前一样传 `slot = "data"`**  
+  在 Seurat v5 下它会被自动映射为 `layer = "data"`（同理 `counts/scale.data` 也一致）。
+
+### 最小示例（Seurat v5）
+
+```r
+library(Seurat)
+library(scRNAtoolVis)
+
+# 示例数据（包内自带）
+pbmc <- readRDS(system.file("extdata", "htdata.RDS", package = "scRNAtoolVis"))
+
+# 1) DotPlot（本包的 jjDotPlot 兼容 v5 的 layer）
+jjDotPlot(object = pbmc, gene = c("LYZ", "MS4A1"), slot = "data")
+
+# 2) 平均表达热图（averageHeatmap 在 v5 下会自动走 layer）
+averageHeatmap(object = pbmc, markerGene = c("LYZ", "MS4A1"), slot = "data")
+
+# 3) tracksPlot（已避免直接 @data，兼容 v5 layers）
+tracksPlot(object = pbmc, genes = c("LYZ", "MS4A1"), slot = "data")
+```
+
+### FeaturePlot/CornerAxes 示例（需要对象包含 umap/tsne 等降维）
+
+```r
+library(Seurat)
+library(scRNAtoolVis)
+
+obj <- readRDS(system.file("extdata", "seuratTest.RDS", package = "scRNAtoolVis"))
+
+# featurePlot：显式指定 slot，Seurat v5 下会自动按 layer 读取
+featurePlot(object = obj, dim = "umap", genes = c("Actb", "Ythdc1"), slot = "data")
+
+# featureCornerAxes：同样支持 slot 参数
+featureCornerAxes(object = obj, reduction = "umap", features = c("Actb", "Ythdc1"), slot = "data")
+```
+
 ## Citation
 
 > Jun Zhang (2022). *scRNAtoolVis: Useful Functions to Make Your scRNA-seq Plot More Cool!.*  <https://github.com/junjunlab/scRNAtoolVis>, <https://junjunlab.github.io/scRNAtoolVis-manual/>.

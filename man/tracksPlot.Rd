@@ -2,9 +2,33 @@
 % Please edit documentation in R/tracksPlot.R
 \name{tracksPlot}
 \alias{tracksPlot}
-\title{This function generates a track or heatmap plot based on the provided data.}
+\title{tracksPlot：轨迹柱/热图（Seurat v5 兼容）}
+\usage{
+tracksPlot(
+  object = NULL,
+  assay = NULL,
+  slot = "data",
+  plot.type = c("track", "heatmap"),
+  genes = NULL,
+  vmin = -2,
+  vmax = 2,
+  cell.order = NULL,
+  gene.order = NULL,
+  facet_nested_params = list(),
+  theme_params = list(),
+  strip_nested_params = list()
+)
+}
 \arguments{
-\item{object}{An optional object containing the data.}
+\item{object}{一个 Seurat 对象，包含表达矩阵与细胞分群信息。}
+
+\item{assay}{使用哪个 assay（例如 "RNA"、"SCT"）。默认使用 \code{Seurat::DefaultAssay(object)}。}
+
+\item{slot}{读取表达矩阵的层（兼容 Seurat v4/v5）。
+\itemize{
+\item Seurat v4：等价于 \code{GetAssayData(..., slot = slot)}
+\item Seurat v5：等价于 \code{GetAssayData(..., layer = slot)}
+}}
 
 \item{plot.type}{The type of plot to generate, either "track" or "heatmap".}
 
@@ -25,10 +49,18 @@
 \item{strip_nested_params}{A list of additional parameters to customize the strip_nested plot.}
 }
 \value{
-A ggplot object representing the track or heatmap plot.
+返回一个 ggplot 对象（track 或 heatmap）。
 }
 \description{
-This function generates a track or heatmap plot based on the provided data.
+基于 Seurat 表达矩阵绘制轨迹柱图或热图（内部已兼容 Seurat v5 的 layer/Assay5）。
+}
+\examples{
+\dontrun{
+obj <- readRDS(system.file("extdata", "seuratTest.RDS", package = "scRNAtoolVis"))
+
+# 热图模式（Seurat v5 下 slot 会自动映射为 layer）
+tracksPlot(object = obj, genes = c("Actb", "Ythdc1"), plot.type = "heatmap", slot = "data")
+}
 }
 \author{
 Jun Zhang

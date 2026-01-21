@@ -2,15 +2,15 @@
 % Please edit documentation in R/markerVolcano.R
 \name{markerVolcano}
 \alias{markerVolcano}
-\title{Marker genes volcano plot}
+\title{Marker 基因“火山分面图”（按 cluster 分面）}
 \arguments{
-\item{markers}{Dataframe marker genes from findAllmarkers function from seurat.}
+\item{markers}{数据框；marker 结果。至少需要列：\code{cluster}, \code{gene}, \code{avg_log2FC}, \code{pct.1}, \code{pct.2}。}
 
-\item{ownGene}{Your own gene names to be labeled on plot, defaults is null.}
+\item{ownGene}{字符向量；若提供，则只标注这些基因（覆盖 topn 逻辑），默认 NULL。}
 
-\item{topn}{Numbers top genes to label, defaults is 5.}
+\item{topn}{整数；每个 cluster 标注的 top 基因数量（正/负各 topn），默认 5。}
 
-\item{log2FC}{The threshold of log2FC, defaults is 0.25.}
+\item{log2FC}{数值；横线阈值（±log2FC），默认 0.25。}
 
 \item{hlineSize}{Hline size, defaults is 1.}
 
@@ -40,7 +40,7 @@
 Return a ggplot.
 }
 \description{
-Marker genes volcano plot
+输入 marker 结果，绘制（pct.1 - pct.2）vs avg_log2FC 的分面图，并自动标注 top 基因。
 }
 \examples{
 test <- system.file("extdata", "pbmc.markers.csv", package = "scRNAtoolVis")

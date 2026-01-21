@@ -2,29 +2,46 @@
 % Please edit documentation in R/cellRatioPlot.R
 \name{cellRatioPlot}
 \alias{cellRatioPlot}
-\title{using cellRatioPlot to visualize cell percent ratio across clusters}
+\title{细胞比例堆叠柱形图（可选流带连接）}
 \arguments{
-\item{object}{object seurat object.}
+\item{object}{Seurat 对象（需要在 \code{object@meta.data} 中包含分组列）。}
 
-\item{sample.name}{sample name in meta info, default NULL.}
+\item{sample.name}{字符串；样本/分组列名（位于 \code{object@meta.data}）。}
 
-\item{celltype.name}{celltype name in meta info, default NULL.}
+\item{celltype.name}{字符串；细胞类型列名（位于 \code{object@meta.data}）。}
 
-\item{col.width}{column width, default 0.7.}
+\item{sample.order}{字符向量；样本显示顺序（用于设置因子 levels），默认 NULL 表示按原始顺序。}
 
-\item{flow.alpha}{flow color alpha, default 0.25.}
+\item{col.width}{数值；柱形宽度，默认 0.7。}
 
-\item{flow.curve}{flow curve rate, default 0.}
+\item{flow.alpha}{数值；流带透明度，默认 0.25。}
 
-\item{fill.col}{supply your own fill colors, default NULL.}
+\item{flow.curve}{数值；流带弯曲程度（knot.pos），默认 0。}
 
-\item{sample.order}{the order for samples, default NULL.}
+\item{fill.col}{颜色向量；为每个细胞类型指定颜色，默认 NULL 表示自动生成。}
 }
 \value{
-a ggplot object.
+返回一个 ggplot 对象。
 }
 \description{
-using cellRatioPlot to visualize cell percent ratio across clusters
+用于展示不同样本（或分组）中各细胞类型的相对比例（百分比），并可选叠加流带连接效果。
+}
+\examples{
+\dontrun{
+library(Seurat)
+library(scRNAtoolVis)
+
+obj <- readRDS(system.file("extdata", "seuratTest.RDS", package = "scRNAtoolVis"))
+obj$sample <- obj$orig.ident
+obj$celltype <- as.character(Seurat::Idents(obj))
+
+cellRatioPlot(
+  object = obj,
+  sample.name = "sample",
+  celltype.name = "celltype",
+  sample.order = unique(obj$sample)
+)
+}
 }
 \author{
 Junjun Lao

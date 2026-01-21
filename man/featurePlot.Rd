@@ -2,18 +2,23 @@
 % Please edit documentation in R/featurePlot.R
 \name{featurePlot}
 \alias{featurePlot}
-\title{This function creates a scatter plot for multiple genes or features from a
-Seurat object.}
+\title{多基因 FeaturePlot（grid 手工布局版本）}
 \arguments{
-\item{object}{A Seurat object containing the data.}
+\item{object}{Seurat 对象。}
 
-\item{dim}{The dimension to use for plotting, default is "umap".}
+\item{dim}{字符串；降维名称（例如 "umap"），默认 "umap"。}
 
-\item{genes}{A character vector of gene names or feature names to be plotted.}
+\item{genes}{字符向量；需要绘制的基因/feature 列表。}
 
-\item{nrow}{Number of rows in the plot grid.}
+\item{slot}{读取表达矩阵的层（兼容 Seurat v4/v5）。
+\itemize{
+\item Seurat v4：等价于 \code{FetchData(..., slot = slot)}
+\item Seurat v5：等价于 \code{FetchData(..., layer = slot)}
+}}
 
-\item{ncol}{Number of columns in the plot grid.}
+\item{nrow}{整数；子图网格行数。}
+
+\item{ncol}{整数；子图网格列数。}
 
 \item{quantile.val}{The quantile value to determine the color cutoff for each gene.}
 
@@ -56,13 +61,19 @@ of rows and columns in the plot grid, defaults to TRUE.}
 \item{point.size}{the point size, default 1.}
 }
 \description{
-This function creates a scatter plot for multiple genes or features from a
-Seurat object.
+从 Seurat 对象中提取降维坐标与基因表达，按给定网格布局绘制多个散点子图。
 }
 \examples{
 \dontrun{
 # Assuming "seurat_obj" is a Seurat object
-featurePlot(object = seurat_obj, genes = c("gene1", "gene2", "gene3"), nrow = 2, ncol = 2)
+featurePlot(
+  object = seurat_obj,
+  dim = "umap",
+  genes = c("gene1", "gene2", "gene3"),
+  slot = "data",
+  nrow = 2,
+  ncol = 2
+)
 }
 
 }

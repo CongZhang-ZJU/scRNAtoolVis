@@ -2,13 +2,13 @@
 % Please edit documentation in R/clusterCornerAxes.R
 \name{clusterCornerAxes}
 \alias{clusterCornerAxes}
-\title{Add corner axes on seurat UMAP/tSNE cluster figures}
+\title{在 UMAP/tSNE 聚类图上添加“角标坐标轴”（Corner Axes）}
 \arguments{
-\item{object}{seurat object.}
+\item{object}{Seurat 对象，必须包含对应降维（例如 "umap"）。}
 
-\item{reduction}{"string", reduction type (umap/tsne).}
+\item{reduction}{字符串；降维名称（umap/tsne 等），默认 "umap"。}
 
-\item{groupFacet}{"string", give the column name in seurat metadata to facet plot.}
+\item{groupFacet}{字符串；当 \code{noSplit = FALSE} 时用于分面（facet）的 meta.data 列名。}
 
 \item{clusterCol}{"string", the point color to group by,cluster name, default "seurat_clusters".}
 
@@ -48,7 +48,7 @@
 
 \item{cicAlpha}{"num", circle fill color alpha, default is 0.1.}
 
-\item{cicDelta}{"num", the distance to extend the curve (circle), this parameter only takes effect when \code{addCircle.legacy = FALSE}.}
+\item{cicDelta}{"num", the distance to extend the curve (circle), this parameter only takes effect when \code{addCircle.legacy = FALSE}. 默认 0.1。}
 
 \item{cicLineSize}{"num", circle line size, default is 1.}
 
@@ -75,10 +75,10 @@
 \item{show.legend}{Whether show legend, default is TRUE.}
 }
 \value{
-Return a ggplot object.
+返回一个 ggplot 对象。
 }
 \description{
-Add corner axes on seurat UMAP/tSNE cluster figures
+绘制聚类散点图（按 cluster 上色），并在左下角添加角标坐标轴；可选为每个 cluster 画外轮廓圈。
 }
 \examples{
 test <- system.file("extdata", "seuratTest.RDS", package = "scRNAtoolVis")

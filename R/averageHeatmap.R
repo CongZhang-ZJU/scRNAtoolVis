@@ -1,38 +1,48 @@
 #' @name averageHeatmap
 #' @author Junjun Lao
-#' @title Plot averaged gene expression cross cluster cells
+#' @title 平均表达热图（按分组聚合）
 #'
-#' @param object object seurat object.
-#' @param markerGene Your marker genes.
-#' @param group.by Categories for grouping (e.g, ident, replicate, celltype). "ident" by default.
-#' @param assays Which assays to use. Default is "RNA" assays.
-#' @param slot Slot(s) to use. Default is "data".
-#' @param htCol Heatmap colors. Default is c("#0099CC", "white", "#CC0033").
-#' @param colseed Cluster annotation colors seed, these colors are produced randomly, so you can give a seed to assure produce same colors.  Default is 666.
-#' @param htRange Heatmap values range. Default is c(-2, 0, 2).
-#' @param annoCol Whether use your own annotation clusters colors. Default is "FALSE".
-#' @param myanCol You can specify your own annotation clusters colors vectors. Default is "null".
-#' @param annoColType Cluster annotation colors type (bright, light, dark and random). Default is light.
-#' @param annoColTypeAlpha Cluster annotation colors transparency. Default is 0.
-#' @param row_title Heatmap row title. Default is "Cluster top Marker genes".
-#' @param row_names_side Heatmap gene name side. Default is "left".
-#' @param border Whether to shOw heatmap border. Default is "FALSE".
-#' @param fontsize Heatmap gene name fontsize. Default is 10.
-#' @param column_names_rot Cluster name rotation. Default is 45.
-#' @param showRowNames whether to show rownames. Default is "TRUE".
-#' @param markGenes Provide your tartget genes to mark on the plot. Default is "NULL".
-#' @param clusterAnnoName Whether to add clsuetr column annotation name. Default is "TRUE".
-#' @param width The heatmap body width. Default is "NULL".
-#' @param height The heatmap body height. Default is "NULL".
-#' @param cluster.order The cell clusters order. Default is "NULL".
+#' @description
+#' 计算指定基因在不同分组（cluster/ident/celltype 等）中的平均表达量，并绘制 Z-score 热图。
+#' 兼容 Seurat v4/v5：Seurat v5 会自动使用 `layer`（本函数仍保留 `slot` 参数名以兼容旧用法）。
 #'
-#' @param cluster_columns Whether cluster columns. Default is "FALSE".
-#' @param cluster_rows Whether cluster rows. Default is "FALSE".
-#' @param gene.order the gene orders for heatmap. Default is "NULL".
+#' @param object Seurat 对象。
+#' @param markerGene 字符向量；要展示的基因列表（marker genes）。
+#' @param group.by 字符串；分组依据（例如 "ident"/"seurat_clusters"/"celltype"），默认 "ident"。
+#' @param assays 字符串；使用哪个 assay，默认 "RNA"。
+#' @param slot 字符串；表达矩阵层（兼容 v4/v5）。常用 "data"/"counts"/"scale.data"，默认 "data"。
+#' @param htCol 颜色向量；热图颜色，默认 c("#0099CC", "white", "#CC0033")。
+#' @param colseed 整数；随机颜色种子（用于 cluster 注释色），默认 666。
+#' @param htRange 数值向量；热图取值范围（对应 htCol），默认 c(-2, 0, 2)。
+#' @param annoCol 逻辑值；是否使用自定义注释颜色，默认 FALSE。
+#' @param myanCol 颜色向量；自定义注释颜色（当 annoCol=TRUE 时使用），默认 NULL。
+#' @param annoColType 字符串；随机颜色亮度风格，默认 "light"。
+#' @param annoColTypeAlpha 数值；随机颜色透明度，默认 0。
+#' @param row_title 字符串；行标题，默认 "Cluster top Marker genes"。
+#' @param clusterAnnoName 逻辑值；是否显示顶部注释名称，默认 TRUE。
+#' @param showRowNames 逻辑值；是否显示行名（基因名），默认 TRUE。
+#' @param row_names_side 字符串；行名位置，默认 "left"。
+#' @param markGenes 字符向量；需要在右侧标注的基因，默认 NULL。
+#' @param border 逻辑值；是否显示边框，默认 FALSE。
+#' @param fontsize 数值；行名字号，默认 10。
+#' @param column_names_rot 数值；列名旋转角度，默认 45。
+#' @param width,height 数值；热图主体宽高（cm），默认 NULL 表示自动。
+#' @param cluster.order 字符向量；列（cluster）顺序，默认 NULL。
+#' @param cluster_columns,cluster_rows 逻辑值；是否聚类列/行，默认 FALSE。
+#' @param gene.order 字符向量；行（gene）顺序，默认 NULL。
+#' @param ... 其他参数会传给 `ComplexHeatmap::rowAnnotation()` 与 `ComplexHeatmap::Heatmap()`。
 #'
-#' @param ... Other arguments passed with ComplexHeatmap::rowAnnotation and ComplexHeatmap::Heatmap.
-#' @return Return a plot.
+#' @return 返回一个 ComplexHeatmap 对象。
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' library(Seurat)
+#' library(scRNAtoolVis)
+#'
+#' obj <- readRDS(system.file("extdata", "htdata.RDS", package = "scRNAtoolVis"))
+#' averageHeatmap(object = obj, markerGene = c("LYZ", "MS4A1"), slot = "data")
+#' }
 #'
 #' @examples
 #' httest <- system.file("extdata", "htdata.RDS", package = "scRNAtoolVis")
@@ -85,31 +95,42 @@ averageHeatmap <- function(
     gene.order = NULL,
     ...) {
   # get cells mean gene expression
-  # check Seurat version first
-  vr <- utils::compareVersion(as.character(utils::packageVersion("Seurat")),"5")
-  if(vr == 1){
-    mean_gene_exp <- as.matrix(
+  # 逐行注释：
+  # - AverageExpression 在 v5 推荐使用 layer；在 v4 使用 slot
+  # - 为避免“仅靠 formals 判断不准/不同版本行为差异”，这里采用与兼容层一致的策略：
+  #   先尝试 layer，失败且错误信息表明 layer 不被支持时，再回退 slot
+  mean_gene_exp <- tryCatch(
+    as.matrix(
       data.frame(
-        Seurat::AverageExpression(object,
-                                  features = markerGene,
-                                  group.by = group.by,
-                                  assays = assays,
-                                  layer = slot
+        Seurat::AverageExpression(
+          object,
+          features = markerGene,
+          group.by = group.by,
+          assays = assays,
+          layer = slot
         )
       )
-    )
-  }else{
-    mean_gene_exp <- as.matrix(
-      data.frame(
-        Seurat::AverageExpression(object,
-                                  features = markerGene,
-                                  group.by = group.by,
-                                  assays = assays,
-                                  slot = slot
+    ),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      if (grepl("unused argument|formal argument", msg, ignore.case = TRUE)) {
+        return(
+          as.matrix(
+            data.frame(
+              Seurat::AverageExpression(
+                object,
+                features = markerGene,
+                group.by = group.by,
+                assays = assays,
+                slot = slot
+              )
+            )
+          )
         )
-      )
-    )
-  }
+      }
+      stop(e)
+    }
+  )
 
   # filter gene
   mean_gene_exp <- mean_gene_exp[rowSums(mean_gene_exp) > 0,]

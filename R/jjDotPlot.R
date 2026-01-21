@@ -1,10 +1,12 @@
 #' @name jjDotPlot
 #' @author Junjun Lao
-#' @title using dotplot to visualize gene expression
+#' @title DotPlot 版基因表达可视化（Seurat v4/v5 兼容）
 #'
-#' @param object seurat object, default NULL.
-#' @param assay the assay to be selected, default NULL.
-#' @param slot gene expression data to be selected, default "data".
+#' @param object Seurat 对象，默认 NULL。
+#' @param assay 字符串；使用哪个 assay，默认 NULL（使用 DefaultAssay）。
+#' @param slot 字符串；表达矩阵层，默认 "data"。
+#' - Seurat v4：等价于 `FetchData(..., slot = slot)`
+#' - Seurat v5：等价于 `FetchData(..., layer = slot)`（本函数内部已自动兼容）
 #' @param id the cell clusters id in the metadata info, default "seurat_clusters".
 #' @param split.by the group name to split, default NULL.
 #' @param split.by.aesGroup whether the dot color filled by group, default FALSE.
@@ -56,7 +58,7 @@
 #' @import patchwork
 #' @import utils
 #'
-#' @return Return a ggplot object.
+#' @return 返回一个 ggplot 对象。
 #' @export
 #'
 #' @examples
@@ -159,13 +161,18 @@ jjDotPlot <- function(
 
   # get gene expression
   if (is.null(gene) && !is.null(markerGene)) {
-    geneExp <- Seurat::FetchData(
+    # 逐行注释：
+    # - Seurat v4 使用 slot 参数选择表达矩阵（默认 "data"）
+    # - Seurat v5 推荐使用 layer 参数（同样常用 "data"）
+    # - 为了同时兼容 v4/v5，这里统一走内部封装 `.scRNAtoolVis_fetch_data()`
+    geneExp <- .scRNAtoolVis_fetch_data(
       object = object,
       vars = unique(markerGene$gene),
       slot = slot
     )
   } else if (!is.null(gene) && is.null(markerGene)) {
-    geneExp <- Seurat::FetchData(
+    # 逐行注释：同上（兼容 Seurat v4/v5 的 slot/layer）
+    geneExp <- .scRNAtoolVis_fetch_data(
       object = object,
       vars = gene,
       slot = slot

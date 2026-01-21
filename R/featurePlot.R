@@ -1,42 +1,41 @@
 #' @name featurePlot
 #' @author Jun Zhang
-#' @title  This function creates a scatter plot for multiple genes or features from a
-#' Seurat object.
+#' @title 多基因 FeaturePlot（grid 手工布局版本）
 #'
-#' @param object A Seurat object containing the data.
-#' @param dim The dimension to use for plotting, default is "umap".
-#' @param genes A character vector of gene names or feature names to be plotted.
-#' @param nrow Number of rows in the plot grid.
-#' @param ncol Number of columns in the plot grid.
-#' @param quantile.val The quantile value to determine the color cutoff for each gene.
-#' @param color A vector of colors to be used for plotting, defaults to a
-#' predefined set of colors.
-#' @param rm.axis Logical value indicating whether to remove axis labels and ticks,
-#' defaults to FALSE.
-#' @param rm.legend Logical value indicating whether to remove the color legend,
-#' defaults to FALSE.
-#' @param add.rect Logical value indicating whether to add a rectangle around
-#' each plot panel, defaults to FALSE.
-#' @param add.corArrow Logical value indicating whether to add arrows indicating
-#' the correlation direction, defaults to FALSE.
-#' @param add.strip Logical value indicating whether to add a strip at the top of
-#' each plot panel, defaults to FALSE.
-#' @param corLabel.dist Distance between the corner arrows and the axis labels.
-#' @param arrow.len Length of the corner arrows.
-#' @param arrow.label.size Font size of the corner arrow labels.
-#' @param plot.size Size of each individual scatter plot.
-#' @param keep.oneCor Logical value indicating whether to keep only one set of
-#' corner arrows across the entire plot grid, defaults to FALSE.
-#' @param xlab Label for the x-axis.
-#' @param ylab Label for the y-axis.
-#' @param respect Logical value indicating whether to respect the specified number
-#' of rows and columns in the plot grid, defaults to TRUE.
-#' @param point.size the point size, default 1.
+#' @description
+#' 从 Seurat 对象中提取降维坐标与基因表达，按给定网格布局绘制多个散点子图。
+#' 兼容 Seurat v4/v5：表达读取在 v5 下会自动走 `layer`（本函数保留 `slot` 参数名以兼容旧用法）。
+#'
+#' @param object Seurat 对象。
+#' @param dim 字符串；降维名称（reduction），默认 "umap"。
+#' @param genes 字符向量；要绘制的基因/feature 列表。
+#' @param slot 读取表达矩阵的层（兼容 Seurat v4/v5），默认 "data"。
+#' - Seurat v4：等价于 `FetchData(..., slot = slot)`
+#' - Seurat v5：等价于 `FetchData(..., layer = slot)`
+#' @param nrow,ncol 整数；子图网格行数/列数。若其中一个为 NULL，会自动根据基因数推断。
+#' @param quantile.val 数值；用于截断极端值的分位数（例如 0.99），默认 1 表示不截断。
+#' @param color 颜色向量；低-高渐变色，默认使用内置配色。
+#' @param rm.axis 逻辑值；是否移除坐标轴，默认 FALSE。
+#' @param rm.legend 逻辑值；是否移除每个子图的颜色条，默认 FALSE。
+#' @param add.rect 逻辑值；是否为每个子图加边框，默认 FALSE。
+#' @param add.corArrow 逻辑值；是否在角落画“方向箭头”（类似 Corner Axes），默认 FALSE。
+#' @param add.strip 逻辑值；是否给每个子图加顶部条带，默认 FALSE。
+#' @param corLabel.dist 数值；角标文字与箭头的距离。
+#' @param arrow.len 数值；箭头长度。
+#' @param arrow.label.size 数值；箭头文字字号。
+#' @param plot.size 数值；每个子图的相对大小。
+#' @param keep.oneCor 逻辑值；是否只保留一套角标箭头，默认 FALSE。
+#' @param xlab,ylab 字符串；坐标轴标题，默认 NULL 表示自动。
+#' @param respect 逻辑值；是否在布局中保持长宽比，默认 TRUE。
+#' @param point.size 数值；点大小（pt），默认 1。
 #'
 #' @examples
 #' \dontrun{
-#' # Assuming "seurat_obj" is a Seurat object
-#' featurePlot(object = seurat_obj, genes = c("gene1", "gene2", "gene3"), nrow = 2, ncol = 2)
+#' library(Seurat)
+#' library(scRNAtoolVis)
+#'
+#' obj <- readRDS(system.file("extdata", "seuratTest.RDS", package = "scRNAtoolVis"))
+#' featurePlot(object = obj, dim = "umap", genes = c("Actb", "Ythdc1"), slot = "data")
 #' }
 #'
 #' @import dplyr
@@ -55,6 +54,7 @@ featurePlot <- function(
     object = NULL,
     dim = "umap",
     genes = NULL,
+    slot = "data",
     nrow = NULL,
     ncol = NULL,
     quantile.val = 1,
@@ -76,6 +76,27 @@ featurePlot <- function(
   # ============================================================================
   # 1_extract data
   # ============================================================================
+  # 逐行注释：
+  # - Seurat 的降维结果存放在 reductions 里（例如 pca/umap/tsne）
+  # - 如果对象里没有对应 reduction，`Seurat::Embeddings()` 会直接报错
+  # - 这里提前做一次更友好的检查，并给出中文提示
+  available_reductions <- Seurat::Reductions(object)
+  if (length(available_reductions) == 0) {
+    stop(
+      "当前 Seurat 对象中没有任何降维结果（reductions）。\n",
+      "请先运行例如 `RunPCA()` / `RunUMAP()` / `RunTSNE()`，或把 `dim` 改为对象中已有的 reduction。"
+    )
+  }
+
+  # 逐行注释：
+  # - 若用户指定的 dim 不存在，给出可用列表
+  if (!dim %in% available_reductions) {
+    stop(
+      sprintf("未在对象中找到 reduction='%s'。可用 reductions: %s",
+              dim, paste(available_reductions, collapse = ", "))
+    )
+  }
+
   # make PC data
   reduc <- data.frame(Seurat::Embeddings(object, reduction = dim))
 
@@ -84,10 +105,20 @@ featurePlot <- function(
 
   # combine
   pc12 <- cbind(reduc, meta)
-  pc12$idents <- Idents(object)
+  # 逐行注释：显式使用 Seurat::Idents，避免与其他包函数重名
+  pc12$idents <- Seurat::Idents(object)
 
   # get gene expression
-  geneExp <- Seurat::FetchData(object = object, vars = genes)
+  # 逐行注释：
+  # - Seurat v5 下 `FetchData(slot=...)` 已经被废弃并会直接报错
+  # - 因此这里统一走 `.scRNAtoolVis_fetch_data()`：
+  #   - v5：自动使用 `layer = slot`
+  #   - v4：自动回退到 `slot = slot`
+  geneExp <- .scRNAtoolVis_fetch_data(
+    object = object,
+    vars = genes,
+    slot = slot
+  )
 
   # cbind
   mer <- cbind(pc12, geneExp)
